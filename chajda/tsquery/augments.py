@@ -95,18 +95,22 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     These words can be used to augment a search with the Query class.
 
     >>> to_tsquery('en', 'baby boy', augment_with=augments_fasttext)
-    '(baby:A | newborn:B | infant:B) & (boy:A | girl:B | boyhe:B | boyit:B)'
+    '(baby:A | newborn:B | mamamade:B | postbath:B | bride:B) & (boy:A | lad:B | man:B | boyman:B | boylike:B)'
+    
+    #'(baby:A | newborn:B | infant:B) & (boy:A | girl:B | boyhe:B | boyit:B)'
 
     >>> to_tsquery('en', '"baby boy"', augment_with=augments_fasttext)
     'baby:A <1> boy:A'
 
     >>> to_tsquery('en', '"baby boy" (school | home) !weapon', augment_with=augments_fasttext)
-    '(baby:A <1> boy:A) & ((school:A | schoo:B | schoolthe:B | schoool:B | kindergarten:B) | (home:A | house:B | homethe:B | homewhen:B | homethis:B)) & !(weapon:A | weaponthe:B | weopon:B)'
+    '(baby:A <1> boy:A) & ((school:A | college:B | highschool:B | 7thgraders:B) | (home:A | office:B | hospital:B | return:B)) & !(weapon:A | pistol:B | arsenal:B | rifle:B | minigun:B)'
 
-    >>> augments_fasttext('en','weapon', n=5)
+    #'(baby:A <1> boy:A) & ((school:A | schoo:B | schoolthe:B | schoool:B | kindergarten:B) | (home:A | house:B | homethe:B | homewhen:B | homethis:B)) & !(weapon:A | weaponthe:B | weopon:B)'
+
+    >>> augments_fasttext('en','weapon', n=5, annoy=False)
     ['weaponthe', 'weopon']
 
-    >>> augments_fasttext('en','king', n=5)
+    >>> augments_fasttext('en','king', n=5, annoy=False)
     ['queen', 'kingthe']
 
     NOTE:
@@ -202,3 +206,9 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
 
 
     return words
+
+
+
+
+#print(" baby boy and school = ", to_tsquery('en', '"baby boy" (school | home) !weapon', augment_with=augments_fasttext))
+#print(" baby boy = ", to_tsquery('en', '"baby boy"', augment_with=augments_fasttext))
