@@ -72,13 +72,27 @@ import fasttext.util
 from annoy import AnnoyIndex
 
 fasttext_models = {}
+annoy_indices = {}
 
-def augments_fasttext(lang, word, config=Config(), n=5):
+def load_index(lang, model, index):
+    i = 0
+    for j in model[lang].words:
+        v = model[lang][j]
+        index.add_item(i,v)
+        i += 1
+    index.build(10)
+    index.save('{0}.ann'.format(lang))
+    index.load('{0}.ann'.format(lang))
+
+def load_model(lang):
+    with suppress_stdout_stderr():
+        fasttext.util.download_model(lang, if_exists='ignore')
+    return fasttext.load_model('cc.{0}.300.bin'.format(lang))
+
+def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     ''' 
     Returns n words that are "similar" to the input word in the target language.
     These words can be used to augment a search with the Query class.
-
-    Note: Due to the size of fasttext models, testing multiple languages in the doctest requires more space than github actions allows for. For this reason, only english is tested in the doctest.
 
     >>> to_tsquery('en', 'baby boy', augment_with=augments_fasttext)
     '(baby:A | newborn:B | infant:B) & (boy:A | girl:B | boyhe:B | boyit:B)'
@@ -94,42 +108,86 @@ def augments_fasttext(lang, word, config=Config(), n=5):
 
     >>> augments_fasttext('en','king', n=5)
     ['queen', 'kingthe']
+
+    NOTE:
+    Due to the size of fasttext models (>1gb),
+    testing multiple languages in the doctest requires more space than github actions allows for.
+    For this reason, we commented out tests involving other languages, and only tested english in the doctest.
+
+    #>>> augments_fasttext('ja','さようなら', n=5)
+    #['さよなら', 'バイバイ', 'サヨウナラ', 'さらば', 'おしまい']
+
+    #>>> augments_fasttext('es','escuela', n=5)
+    #['escuelala', 'academia', 'universidad', 'laescuela']
+
     '''
     
-    #load the fasttext model if it's not already loaded
+    # load the fasttext model if it's not already loaded
     try:
         fasttext_models[lang]
     except:
-        with suppress_stdout_stderr():
-            fasttext.util.download_model(lang, if_exists='ignore')
-        fasttext_models[lang] = fasttext.load_model('cc.{0}.300.bin'.format(lang))
+        fasttext_models[lang] = load_model(lang)
     
-    #create AnnoyIndex 
-    index = AnnoyIndex(300, 'angular')
+    if annoy:
+        # create AnnoyIndex if not already created
+        try:
+            annoy_indices[lang]
+        except:
+            annoy_indices[lang] = AnnoyIndex(300, 'angular')
 
-    #If annoy index has not been created for this language yet, populate with vectors from corresponding fasttext model 
-    try:
-        index.load('{0}.ann'.format(lang))
-    except:
-        i = 0
-        for j in fasttext_models[lang].words:
-            v = fasttext_models[lang][j]
-            index.add_item(i,v)
-            i += 1
-        index.build(10)
-        index.save('{0}.ann'.format(lang))
-        index.load('{0}.ann'.format(lang))
+        # if annoy index has not been saved for this language yet,
+        # populate annoy index with vectors from corresponding fasttext model
+        try:
+            annoy_indices[lang].load('{0}.ann'.format(lang))
+        except:
+            load_index(lang, fasttext_models, annoy_indices)
 
-    #find the most similar words using annoy index
-    try:
-        n_nearest_neighbor_indices = index.get_nns_by_vector(fasttext_models[lang][word], n)
-        n_nearest_neighbors = []
-        for i in range(n):
-            n_nearest_neighbors.append(fasttext_models[lang].words[n_nearest_neighbor_indices[i]])
-        words = ' '.join([ word for word in n_nearest_neighbors ])
-        print("words = ", words)
-    except KeyError:
-        return []
+        # find the most similar words using annoy library
+        try:
+            n_nearest_neighbor_indices = annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)
+            n_nearest_neighbors = []
+            for i in range(n):
+                n_nearest_neighbors.append(fasttext_models[lang].words[n_nearest_neighbor_indices[i]])
+            words = ' '.join([ word for word in n_nearest_neighbors ])
+        except KeyError:
+            return []
+    else:
+        # find the most similar words using fasttext library
+        try:
+            topn = fasttext_models[lang].get_nearest_neighbors(word, k=n)
+            words = ' '.join([ word for (rank, word) in topn ])
+        except KeyError:
+            return []
+
+
+
+   # # create AnnoyIndex 
+   # index = AnnoyIndex(300, 'angular')
+
+   # # if annoy index has not been created for this language yet,
+   # # populate with vectors from corresponding fasttext model 
+   # try:
+   #     index.load('{0}.ann'.format(lang))
+   # except:
+   #     i = 0
+   #     for j in fasttext_models[lang].words:
+   #         v = fasttext_models[lang][j]
+   #         index.add_item(i,v)
+   #         i += 1
+   #     index.build(10)
+   #     index.save('{0}.ann'.format(lang))
+   #     index.load('{0}.ann'.format(lang))
+
+   # #find the most similar words using annoy index
+   # try:
+   #     n_nearest_neighbor_indices = index.get_nns_by_vector(fasttext_models[lang][word], n)
+   #     n_nearest_neighbors = []
+   #     for i in range(n):
+   #         n_nearest_neighbors.append(fasttext_models[lang].words[n_nearest_neighbor_indices[i]])
+   #     words = ' '.join([ word for word in n_nearest_neighbors ])
+   #     print("words = ", words)
+   # except KeyError:
+   #     return []
 
     #find the most similar words
    # try:
