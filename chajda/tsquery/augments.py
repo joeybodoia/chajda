@@ -81,11 +81,11 @@ def load_index(lang, model, index):
     i = 0
     for j in model[lang].words:
         v = model[lang][j]
-        index.add_item(i,v)
+        index[lang].add_item(i,v)
         i += 1
-    index.build(10)
-    index.save('{0}.ann'.format(lang))
-    index.load('{0}.ann'.format(lang))
+    index[lang].build(10)
+    index[lang].save('{0}.ann'.format(lang))
+    index[lang].load('{0}.ann'.format(lang))
 
 def load_model(lang):
     with suppress_stdout_stderr():
@@ -139,14 +139,15 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
         # create AnnoyIndex if not already created
         try:
             annoy_indices[lang]
-        except:
+        except KeyError:
             annoy_indices[lang] = AnnoyIndex(300, 'angular')
 
         # if annoy index has not been saved for this language yet,
         # populate annoy index with vectors from corresponding fasttext model
         try:
             annoy_indices[lang].load('{0}.ann'.format(lang))
-        except:
+        # OSError occurs if index is not already saved to disk
+        except OSError:
             load_index(lang, fasttext_models, annoy_indices)
 
         # find the most similar words using annoy library
