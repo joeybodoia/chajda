@@ -4,7 +4,10 @@
 from chajda.tsvector import lemmatize, Config
 from chajda.tsquery.__init__ import to_tsquery
 
-
+# The following imports as well as suppress_stdout_stderr() are taken from stackoverflow:
+# https://stackoverflow.com/questions/11130156/suppress-stdout-stderr-print-from-python-functions
+# In this project, suppress_stdout_stderr() is used for redirecting stdout and stderr when downloading gensim and fasttext models.
+# Without this, the doctests fail due to stdout and stderr from gensim and fasttext model downloads.
 from contextlib import contextmanager,redirect_stderr,redirect_stdout
 from os import devnull
 
@@ -116,7 +119,7 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     NOTE:
     Due to the size of fasttext models (>1gb),
     testing multiple languages in the doctest requires more space than github actions allows for.
-    For this reason, we commented out tests involving other languages, and only tested english in the doctest.
+    For this reason, tests involving languages other than English have been commented out below.
 
     #>>> augments_fasttext('ja','さようなら', n=5)
     #['さよなら', 'バイバイ', 'サヨウナラ', 'さらば', 'おしまい']
@@ -126,7 +129,7 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
 
     '''
     
-    # load the fasttext model if it's not already loaded
+    # download and load the fasttext model if it's not already loaded
     try:
         fasttext_models[lang]
     except:
@@ -147,21 +150,15 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
             load_index(lang, fasttext_models, annoy_indices)
 
         # find the most similar words using annoy library
-        try:
-            n_nearest_neighbor_indices = annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)
-            n_nearest_neighbors = []
-            for i in range(n):
-                n_nearest_neighbors.append(fasttext_models[lang].words[n_nearest_neighbor_indices[i]])
-            words = ' '.join([ word for word in n_nearest_neighbors ])
-        except KeyError:
-            return []
+        n_nearest_neighbor_indices = annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)
+        n_nearest_neighbors = []
+        for i in range(n):
+            n_nearest_neighbors.append(fasttext_models[lang].words[n_nearest_neighbor_indices[i]])
+        words = ' '.join([ word for word in n_nearest_neighbors ])
     else:
         # find the most similar words using fasttext library
-        try:
-            topn = fasttext_models[lang].get_nearest_neighbors(word, k=n)
-            words = ' '.join([ word for (rank, word) in topn ])
-        except KeyError:
-            return []
+        topn = fasttext_models[lang].get_nearest_neighbors(word, k=n)
+        words = ' '.join([ word for (rank, word) in topn ])
 
 
 
