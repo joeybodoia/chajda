@@ -3,6 +3,8 @@
 
 from chajda.tsvector import lemmatize, Config
 from chajda.tsquery.__init__ import to_tsquery
+import time
+
 
 def augments_gensim(lang, word, config=Config(), n=5):
     '''
@@ -61,6 +63,7 @@ from annoy import AnnoyIndex
 fasttext_models = {}
 annoy_indices = {}
 
+#start_time = time.time()
 def create_annoy_index(lang):
     '''
     Checks whether an AnnoyIndex has already been saved for the language passed as parameter lang.
@@ -107,20 +110,20 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     This function will default to using the annoy library to get the nearest neighbors.
     Set annoy=False to use fasttext library for nearest neighbor query.
 
-    #>>> to_tsquery('en', 'baby boy', augment_with=lambda lang,word,config,n: augments_fasttext(lang,word,config,n,annoy=False))
-    #'(baby:A | newborn:B | infant:B) & (boy:A | girl:B | boyhe:B | boyit:B)'
+    >>> to_tsquery('en', 'baby boy', augment_with=lambda lang,word,config,n=5,annoy=False: augments_fasttext(lang,word,config,n,annoy))
+    '(baby:A | newborn:B | infant:B) & (boy:A | girl:B | boyhe:B | boyit:B)'
 
-    >>> to_tsquery('en', 'baby boy', augment_with=augments_fasttext)
-    '(baby:A | mama:B | babyboy:B | mommy:B) & (boy:A | girl:B | boyas:B | elevenyearold:B)'
+    #>>> to_tsquery('en', 'baby boy', augment_with=augments_fasttext)
+    #'(baby:A | mama:B | babyboy:B | mommy:B) & (boy:A | girl:B | boyas:B | elevenyearold:B)'
 
-    >>> to_tsquery('en', '"baby boy"', augment_with=augments_fasttext)
-    'baby:A <1> boy:A'
+    #>>> to_tsquery('en', '"baby boy"', augment_with=augments_fasttext)
+    #'baby:A <1> boy:A'
 
-    >>> to_tsquery('en', '"baby boy" (school | home) !weapon', augment_with=augments_fasttext)
-    '(baby:A <1> boy:A) & ((school:A | elementary:B | middleschool:B | elementaryschool:B | kindergarteners:B) | (home:A | neighborhood:B | comfort:B | redecorate:B)) & !(weapon:A | nonweapon:B | loadout:B | dualwield:B | autogun:B)'
+    #>>> to_tsquery('en', '"baby boy" (school | home) !weapon', augment_with=augments_fasttext)
+    #'(baby:A <1> boy:A) & ((school:A | elementary:B | middleschool:B | elementaryschool:B | kindergarteners:B) | (home:A | neighborhood:B | comfort:B | redecorate:B)) & !(weapon:A | nonweapon:B | loadout:B | dualwield:B | autogun:B)'
 
-    >>> augments_fasttext('en','weapon', n=5, annoy=False)
-    ['weaponthe', 'weopon']
+    #>>> augments_fasttext('en','weapon', n=5, annoy=False)
+    #['weaponthe', 'weopon']
 
     #>>> augments_fasttext('en','king', n=5, annoy=False)
     #['queen', 'kingthe']
@@ -156,16 +159,27 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
         create_annoy_index(lang)
         annoy_indices[lang].load('{0}.ann'.format(lang))
 
+       # start_time = time.time()
+
+
         # find the most similar words using annoy library
         n_nearest_neighbor_indices = annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)
         n_nearest_neighbors = []
         for i in range(n):
             n_nearest_neighbors.append(fasttext_models[lang].words[n_nearest_neighbor_indices[i]])
+
+        #print("annoy nearest neighbors found in ", time.time() - start_time, " seconds")
+
         words = ' '.join([ word for word in n_nearest_neighbors ])
 
     else:
+        #start_time = time.time()
+
         # find the most similar words using fasttext library
         topn = fasttext_models[lang].get_nearest_neighbors(word, k=n)
+
+        #print("fasttext nearest neighbors found in ", time.time() - start_time, " seconds")
+
         words = ' '.join([ word for (rank, word) in topn ])
 
     # lemmatize the results so that they'll be in the search document's vocabulary
