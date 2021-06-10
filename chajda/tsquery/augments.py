@@ -110,8 +110,8 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     This function will default to using the annoy library to get the nearest neighbors.
     Set annoy=False to use fasttext library for nearest neighbor query.
 
-    >>> to_tsquery('en', 'baby boy', augment_with=lambda lang,word,config,n=5,annoy=False: augments_fasttext(lang,word,config,n,annoy))
-    '(baby:A | newborn:B | infant:B) & (boy:A | girl:B | boyhe:B | boyit:B)'
+    #>>> to_tsquery('en', 'baby boy', augment_with=lambda lang,word,config,n=5,annoy=False: augments_fasttext(lang,word,config,n,annoy))
+    #'(baby:A | newborn:B | infant:B) & (boy:A | girl:B | boyhe:B | boyit:B)'
 
     #>>> to_tsquery('en', 'baby boy', augment_with=augments_fasttext)
     #'(baby:A | mama:B | babyboy:B | mommy:B) & (boy:A | girl:B | boyas:B | elevenyearold:B)'
