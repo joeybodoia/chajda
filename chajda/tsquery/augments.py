@@ -4,23 +4,6 @@
 from chajda.tsvector import lemmatize, Config
 from chajda.tsquery.__init__ import to_tsquery
 
-# The following imports as well as suppress_stdout_stderr() are taken from stackoverflow:
-# https://stackoverflow.com/questions/11130156/suppress-stdout-stderr-print-from-python-functions
-# In this project, suppress_stdout_stderr() is used for redirecting stdout and stderr when downloading gensim and fasttext models.
-# Without this, the doctests fail due to stdout and stderr from gensim and fasttext model downloads.
-from contextlib import contextmanager,redirect_stderr,redirect_stdout
-from os import devnull
-
-@contextmanager
-def suppress_stdout_stderr():
-    """Context manager that redirects stdout and stderr to devnull"""
-    with open(devnull, 'w') as fnull:
-        with redirect_stderr(fnull) as err, redirect_stdout(fnull) as out:
-            yield (err, out)
-
-
-
-
 def augments_gensim(lang, word, config=Config(), n=5):
     '''
     Returns n words that are "similar" to the input word in the target language.
@@ -96,6 +79,8 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     ''' 
     Returns n words that are "similar" to the input word in the target language.
     These words can be used to augment a search with the Query class.
+    This function will default to using the annoy library to get the nearest neighbors.
+    Set annoy=False to use fasttext library for nearest neighbor query.
 
     >>> to_tsquery('en', 'baby boy', augment_with=augments_fasttext)
     '(baby:A | newborn:B | mamamade:B | postbath:B | bride:B) & (boy:A | lad:B | man:B | boyman:B | boylike:B)'
@@ -132,7 +117,7 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     # download and load the fasttext model if it's not already loaded
     try:
         fasttext_models[lang]
-    except:
+    except KeyError:
         fasttext_models[lang] = load_model(lang)
     
     if annoy:
@@ -205,8 +190,18 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
 
     return words
 
+# The following imports as well as suppress_stdout_stderr() are taken from stackoverflow:
+# https://stackoverflow.com/questions/11130156/suppress-stdout-stderr-print-from-python-functions
+# In this project, suppress_stdout_stderr() is used for redirecting stdout and stderr when downloading gensim and fasttext models.
+# Without this, the doctests fail due to stdout and stderr from gensim and fasttext model downloads.
+from contextlib import contextmanager,redirect_stderr,redirect_stdout
+from os import devnull
 
+@contextmanager
+def suppress_stdout_stderr():
+    """Context manager that redirects stdout and stderr to devnull"""
+    with open(devnull, 'w') as fnull:
+        with redirect_stderr(fnull) as err, redirect_stdout(fnull) as out:
+            yield (err, out)
 
-
-#print(" baby boy and school = ", to_tsquery('en', '"baby boy" (school | home) !weapon', augment_with=augments_fasttext))
-#print(" baby boy = ", to_tsquery('en', '"baby boy"', augment_with=augments_fasttext))
+#print("tsquery baby boy = ", to_tsquery('en', 'baby boy', augment_with=augments_fasttext))
