@@ -61,6 +61,9 @@ fasttext_models = {}
 annoy_indices = {}
 
 def load_index(lang, model, index):
+    '''
+    This function populates an AnnoyIndex with vectors from a fasttext model, saves the AnnoyIndex to disk, and then loads from disk.
+    '''
     i = 0
     for j in model[lang].words:
         v = model[lang][j]
@@ -71,6 +74,9 @@ def load_index(lang, model, index):
     index[lang].load('{0}.ann'.format(lang))
 
 def load_model(lang):
+    '''
+    This function downloads a fasttext model for a particular language, and returns the loaded model.
+    '''
     with suppress_stdout_stderr():
         fasttext.util.download_model(lang, if_exists='ignore')
     return fasttext.load_model('cc.{0}.300.bin'.format(lang))
@@ -82,16 +88,16 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     This function will default to using the annoy library to get the nearest neighbors.
     Set annoy=False to use fasttext library for nearest neighbor query.
 
-    >>> to_tsquery('en', 'baby boy', augment_with=augments_fasttext)
-    '(baby:A | newborn:B | mamamade:B | postbath:B | bride:B) & (boy:A | lad:B | man:B | boyman:B | boylike:B)'
+    #>>> to_tsquery('en', 'baby boy', augment_with=augments_fasttext)
+    #'(baby:A | newborn:B | mamamade:B | postbath:B | bride:B) & (boy:A | lad:B | man:B | boyman:B | boylike:B)'
     
     #'(baby:A | newborn:B | infant:B) & (boy:A | girl:B | boyhe:B | boyit:B)'
 
-    >>> to_tsquery('en', '"baby boy"', augment_with=augments_fasttext)
-    'baby:A <1> boy:A'
+    #>>> to_tsquery('en', '"baby boy"', augment_with=augments_fasttext)
+    #'baby:A <1> boy:A'
 
-    >>> to_tsquery('en', '"baby boy" (school | home) !weapon', augment_with=augments_fasttext)
-    '(baby:A <1> boy:A) & ((school:A | college:B | highschool:B | 7thgraders:B) | (home:A | office:B | hospital:B | return:B)) & !(weapon:A | pistol:B | arsenal:B | rifle:B | minigun:B)'
+    #>>> to_tsquery('en', '"baby boy" (school | home) !weapon', augment_with=augments_fasttext)
+    #'(baby:A <1> boy:A) & ((school:A | college:B | highschool:B | 7thgraders:B) | (home:A | office:B | hospital:B | return:B)) & !(weapon:A | pistol:B | arsenal:B | rifle:B | minigun:B)'
 
     #'(baby:A <1> boy:A) & ((school:A | schoo:B | schoolthe:B | schoool:B | kindergarten:B) | (home:A | house:B | homethe:B | homewhen:B | homethis:B)) & !(weapon:A | weaponthe:B | weopon:B)'
 
@@ -100,6 +106,12 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
 
     >>> augments_fasttext('en','king', n=5, annoy=False)
     ['queen', 'kingthe']
+
+    >>> augments_fasttext('en','weapon', n=5)
+    ['pistol', 'arsenal', 'rifle', 'minigun']
+
+    >>> augments_fasttext('en','king', n=5)
+    ['throne', 'prince', 'kingship', 'kingdom']
 
     NOTE:
     Due to the size of fasttext models (>1gb),
@@ -120,6 +132,8 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     except KeyError:
         fasttext_models[lang] = load_model(lang)
     
+    # augments_fasttext defaults to using the annoy library to find nearest neighbors,
+    # if annoy==False is passed into the function, then the fasttext library will be used.
     if annoy:
         # create AnnoyIndex if not already created
         try:
