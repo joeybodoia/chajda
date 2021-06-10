@@ -101,14 +101,14 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
 
     #'(baby:A <1> boy:A) & ((school:A | schoo:B | schoolthe:B | schoool:B | kindergarten:B) | (home:A | house:B | homethe:B | homewhen:B | homethis:B)) & !(weapon:A | weaponthe:B | weopon:B)'
 
-    >>> augments_fasttext('en','weapon', n=5, annoy=False)
-    ['weaponthe', 'weopon']
+   # >>> augments_fasttext('en','weapon', n=5, annoy=False)
+   # ['weaponthe', 'weopon']
 
-    >>> augments_fasttext('en','king', n=5, annoy=False)
-    ['queen', 'kingthe']
+   # >>> augments_fasttext('en','king', n=5, annoy=False)
+   # ['queen', 'kingthe']
 
-    >>> augments_fasttext('en','weapon', n=5)
-    ['pistol', 'arsenal', 'rifle', 'minigun']
+   # >>> augments_fasttext('en','weapon', n=5)
+   # ['pistol', 'arsenal', 'rifle', 'minigun']
 
     >>> augments_fasttext('en','king', n=5)
     ['throne', 'prince', 'kingship', 'kingdom']
@@ -218,4 +218,6 @@ def suppress_stdout_stderr():
         with redirect_stderr(fnull) as err, redirect_stdout(fnull) as out:
             yield (err, out)
 
-#print("tsquery baby boy = ", to_tsquery('en', 'baby boy', augment_with=augments_fasttext))
+print("tsquery  single quotes baby boy = ", to_tsquery('en', 'baby boy', augment_with=augments_fasttext))
+print("tsquery double quotes baby boy = ", to_tsquery('en', '"baby boy"', augment_with=augments_fasttext))
+print("tsquery baby boy (school | home) !weapon = ", to_tsquery('en', '"baby boy" (school | home) !weapon', augment_with=augments_fasttext))
