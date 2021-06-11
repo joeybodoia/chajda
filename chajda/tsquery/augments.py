@@ -72,28 +72,28 @@ def create_annoy_index(lang):
 
 
     # create AnnoyIndex if not already created
-   # try:
-   #     annoy_indices[lang]
-   # except KeyError:
-    annoy_indices[lang] = AnnoyIndex(300, 'angular')
-    # if annoy index has not been saved for this language yet,
-    # populate annoy index with vectors from corresponding fasttext model
     try:
-        annoy_indices[lang].load('{0}.ann'.format(lang))
-    # OSError occurs if index is not already saved to disk
-    except OSError:
-        # The annoy library uses a random number genertor when building up the trees for an Annoy Index.
-        # In order to ensure that the output is deterministic, we specify the seed value for the random number generator.
-        annoy_indices[lang].set_seed(22)
-        i = 0
-        for j in fasttext_models[lang].words:
-            v = fasttext_models[lang][j]
-            annoy_indices[lang].add_item(i,v)
-            i += 1
-        # build the trees for the index    
-        annoy_indices[lang].build(10)
-        # save the index to disk
-        annoy_indices[lang].save('{0}.ann'.format(lang))
+        annoy_indices[lang]
+    except KeyError:
+        annoy_indices[lang] = AnnoyIndex(300, 'angular')
+        # if annoy index has not been saved for this language yet,
+        # populate annoy index with vectors from corresponding fasttext model
+        try:
+            annoy_indices[lang].load('{0}.ann'.format(lang))
+        # OSError occurs if index is not already saved to disk
+        except OSError:
+            # The annoy library uses a random number genertor when building up the trees for an Annoy Index.
+            # In order to ensure that the output is deterministic, we specify the seed value for the random number generator.
+            annoy_indices[lang].set_seed(22)
+            i = 0
+            for j in fasttext_models[lang].words:
+                v = fasttext_models[lang][j]
+                annoy_indices[lang].add_item(i,v)
+                i += 1
+            # build the trees for the index    
+            annoy_indices[lang].build(10)
+            # save the index to disk
+            annoy_indices[lang].save('{0}.ann'.format(lang))
 
             
 def load_fasttext_model(lang):
@@ -111,8 +111,8 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     This function will default to using the annoy library to get the nearest neighbors.
     Set annoy=False to use fasttext library for nearest neighbor query.
 
-    >>> to_tsquery('en', 'baby boy', augment_with=lambda lang,word,config,n=5,annoy=False: augments_fasttext(lang,word,config,n,annoy))
-    '(baby:A | newborn:B | infant:B) & (boy:A | girl:B | boyhe:B | boyit:B)'
+    #>>> to_tsquery('en', 'baby boy', augment_with=lambda lang,word,config,n=5,annoy=False: augments_fasttext(lang,word,config,n,annoy))
+    #'(baby:A | newborn:B | infant:B) & (boy:A | girl:B | boyhe:B | boyit:B)'
 
     #>>> to_tsquery('en', 'baby boy', augment_with=augments_fasttext)
     #'(baby:A | mama:B | babyboy:B | mommy:B) & (boy:A | girl:B | boyas:B | elevenyearold:B)'
@@ -157,10 +157,10 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     # augments_fasttext defaults to using the annoy library to find nearest neighbors,
     # if annoy==False is passed into the function, then the fasttext library will be used.
     if annoy:
-        try:
-            annoy_indices[lang]
-        except KeyError:
-            create_annoy_index(lang)
+        #try:
+        #    annoy_indices[lang]
+        #except KeyError:
+        create_annoy_index(lang)
         annoy_indices[lang].load('{0}.ann'.format(lang))
 
        # start_time = time.time()
@@ -178,7 +178,7 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
 
     else:
         #start_time = time.time()
-
+        #print("using fasttext library for nearest neighbor search")
         # find the most similar words using fasttext library
         topn = fasttext_models[lang].get_nearest_neighbors(word, k=n)
 
@@ -207,6 +207,6 @@ def suppress_stdout_stderr():
         with redirect_stderr(fnull) as err, redirect_stdout(fnull) as out:
             yield (err, out)
 
-#print("tsquery  single quotes baby boy = ", to_tsquery('en', 'baby boy', augment_with=augments_fasttext))
+#print("tsquery  single quotes baby boy = ", to_tsquery('en', 'baby boy', augment_with=lambda lang,word,config,n=5,annoy=False: augments_fasttext(lang,word,config,n,annoy)))
 #print("tsquery double quotes baby boy = ", to_tsquery('en', '"baby boy"', augment_with=augments_fasttext))
 #print("tsquery baby boy (school | home) !weapon = ", to_tsquery('en', '"baby boy" (school | home) !weapon', augment_with=augments_fasttext))
