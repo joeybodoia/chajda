@@ -61,7 +61,6 @@ fasttext_models = {}
 annoy_indices = {}
 
 def load_index(lang, model, index):
-    index[lang].set_seed(22)
     i = 0
     for j in model[lang].words:
         v = model[lang][j]
