@@ -72,15 +72,19 @@ def create_annoy_index_if_needed(lang, word, n):
     # create AnnoyIndex if not already created
     try:
         annoy_indices[lang]
+        print("1")
         #annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)
     except KeyError:
+        print("2")
         annoy_indices[lang] = AnnoyIndex(300, 'angular')
         # if annoy index has not been saved for this language yet,
         # populate annoy index with vectors from corresponding fasttext model
         try:
+            print("3")
             annoy_indices[lang].load('{0}.ann'.format(lang))
         # OSError occurs if index is not already saved to disk
         except OSError:
+            print("4")
             # The annoy library uses a random number genertor when building up the trees for an Annoy Index.
             # In order to ensure that the output is deterministic, we specify the seed value for the random number generator.
             annoy_indices[lang].set_seed(22)
@@ -167,6 +171,7 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
         #    annoy_indices[lang]
         #except KeyError:
         create_annoy_index_if_needed(lang, word, n)
+        #annoy_indices[lang]
         #start_time = time.time()
 
 
