@@ -63,7 +63,6 @@ from annoy import AnnoyIndex
 fasttext_models = {}
 annoy_indices = {}
 
-#start_time = time.time()
 def create_annoy_index_if_needed(lang, word, n):
     '''
     Checks whether an AnnoyIndex has already been saved for the language passed as parameter lang.
@@ -72,19 +71,14 @@ def create_annoy_index_if_needed(lang, word, n):
     # create AnnoyIndex if not already created
     try:
         annoy_indices[lang]
-        print("1")
-        #annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)
     except KeyError:
-        print("2")
         annoy_indices[lang] = AnnoyIndex(300, 'angular')
         # if annoy index has not been saved for this language yet,
         # populate annoy index with vectors from corresponding fasttext model
         try:
-            print("3")
             annoy_indices[lang].load('{0}.ann'.format(lang))
         # OSError occurs if index is not already saved to disk
         except OSError:
-            print("4")
             # The annoy library uses a random number genertor when building up the trees for an Annoy Index.
             # In order to ensure that the output is deterministic, we specify the seed value for the random number generator.
             annoy_indices[lang].set_seed(22)
@@ -97,16 +91,22 @@ def create_annoy_index_if_needed(lang, word, n):
             annoy_indices[lang].build(10)
             # save the index to disk
             annoy_indices[lang].save('{0}.ann'.format(lang))
-            #annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)
+            # annoy library's get_nns_by_vector runs significantly faster after it has been called once,
+            # so we call it once upon loading the model to ensure most efficient runtime for subsequent uses
+            annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)
 
             
-def load_fasttext_model(lang):
+def load_fasttext_model(lang, word, n):
     '''
-    Downloads a fasttext model for a particular language, and returns the loaded model.
+    Downloads and loads fasttext model for a particular language, storing the loaded model in the fasttext_models dictionary..
     '''
     with suppress_stdout_stderr():
         fasttext.util.download_model(lang, if_exists='ignore')
-    return fasttext.load_model('cc.{0}.300.bin'.format(lang))
+    #return fasttext.load_model('cc.{0}.300.bin'.format(lang))
+    fasttext_models[lang] = fasttext.load_model('cc.{0}.300.bin'.format(lang))
+    # fasttext's get_nearest_neighbor runs significantly faster after it has been called once,
+    # so we call it once upon loading the model to ensure most efficient runtime for subsequent uses
+    fasttext_models[lang].get_nearest_neighbors(word, k=n)
 
 def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     ''' 
@@ -115,29 +115,29 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     This function will default to using the annoy library to get the nearest neighbors.
     Set annoy=False to use fasttext library for nearest neighbor query.
 
-    #>>> to_tsquery('en', 'baby boy', augment_with=lambda lang,word,config,n,annoy: augments_fasttext(lang,word,config,5,False))
-    #'(baby:A | newborn:B | infant:B) & (boy:A | girl:B | boyhe:B | boyit:B)'
+    >>> to_tsquery('en', 'baby boy', augment_with=lambda lang,word,config: augments_fasttext(lang,word,config,5,False))
+    '(baby:A | newborn:B | infant:B) & (boy:A | girl:B | boyhe:B | boyit:B)'
 
-    >>> to_tsquery('en', 'baby boy', augment_with=augments_fasttext)
-    '(baby:A | mama:B | babyboy:B | mommy:B) & (boy:A | girl:B | boyas:B | elevenyearold:B)'
+    #>>> to_tsquery('en', 'baby boy', augment_with=augments_fasttext)
+    #'(baby:A | mama:B | babyboy:B | mommy:B) & (boy:A | girl:B | boyas:B | elevenyearold:B)'
 
-    #>>> to_tsquery('en', '"baby boy"', augment_with=augments_fasttext)
-    #'baby:A <1> boy:A'
+    >>> to_tsquery('en', '"baby boy"', augment_with=lambda lang,word,config: augments_fasttext(lang,word,config,5,False))
+    'baby:A <1> boy:A'
 
-    #>>> to_tsquery('en', '"baby boy" (school | home) !weapon', augment_with=augments_fasttext)
-    #'(baby:A <1> boy:A) & ((school:A | elementary:B | middleschool:B | elementaryschool:B | kindergarteners:B) | (home:A | neighborhood:B | comfort:B | redecorate:B)) & !(weapon:A | nonweapon:B | loadout:B | dualwield:B | autogun:B)'
+    >>> to_tsquery('en', '"baby boy" (school | home) !weapon', augment_with=lambda lang,word,config: augments_fasttext(lang,word,config,5,False))
+    '(baby:A <1> boy:A) & ((school:A | schoo:B | schoolthe:B | schoool:B | kindergarten:B) | (home:A | house:B | homethe:B | homewhen:B | homethis:B)) & !(weapon:A | weaponthe:B | weopon:B)'
 
-    #>>> augments_fasttext('en','weapon', n=5, annoy=False)
-    #['weaponthe', 'weopon']
+    >>> augments_fasttext('en','weapon', n=5, annoy=False)
+    ['weaponthe', 'weopon']
 
-    #>>> augments_fasttext('en','king', n=5, annoy=False)
-    #['queen', 'kingthe']
+    >>> augments_fasttext('en','king', n=5, annoy=False)
+    ['queen', 'kingthe']
 
     #>>> augments_fasttext('en','weapon', n=5)
-    #['pistol', 'arsenal', 'rifle', 'minigun']
+    #['nonweapon', 'loadout', 'dualwield', 'autogun']
 
-    >>> augments_fasttext('en','king', n=5)
-    ['kingthe', 'kingly']
+    #>>> augments_fasttext('en','king', n=5)
+    #['kingthe', 'kingly']
 
     NOTE:
     Due to the size of fasttext models (>1gb),
@@ -155,43 +155,49 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
     # download and load the fasttext model if it's not already loaded
     try:
         fasttext_models[lang]
-        # fasttext's get_nearest_neighbor runs significantly faster after it has been called once,
-        # so we call it once before we want to actually use it to ensure fasttext runtime
-        #fasttext_models[lang].get_nearest_neighbors(word, k=n)
     except KeyError:
-        fasttext_models[lang] = load_fasttext_model(lang)
-        # fasttext's get_nearest_neighbor runs significantly faster after it has been called once,
-        # so we call it once before we want to actually use it to ensure fasttext runtime
-        #fasttext_models[lang].get_nearest_neighbors(word, k=n)
+        load_fasttext_model(lang, word, n)
+        #fasttext_models[lang] = load_fasttext_model(lang, word, n)
     
     # augments_fasttext defaults to using the annoy library to find nearest neighbors,
     # if annoy==False is passed into the function, then the fasttext library will be used.
     if annoy:
-        #try:
-        #    annoy_indices[lang]
-        #except KeyError:
+        # populate and load AnnoyIndex with vectors from fasttext model if not already populated
         create_annoy_index_if_needed(lang, word, n)
-        #annoy_indices[lang]
-        #start_time = time.time()
-
-
+ 
         # find the most similar words using annoy library
+
+        #start_time = time.time()
         n_nearest_neighbor_indices = annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)
+
+        #print("annoy nearest neighbors found in 1", time.time() - start_time, " seconds")
+        
+        # find the most similar words using annoy library
+
+        #start_time = time.time()
         n_nearest_neighbors = []
         for i in range(n):
             n_nearest_neighbors.append(fasttext_models[lang].words[n_nearest_neighbor_indices[i]])
 
-        #print("annoy nearest neighbors found in ", time.time() - start_time, " seconds")
+        #print("annoy nearest neighbors found in 2", time.time() - start_time, " seconds")
+
+       # start_time = time.time()
+       # n_nearest_neighbors = []
+       # for i in range(n):
+       #     n_nearest_neighbors.append(fasttext_models[lang].words[n_nearest_neighbor_indices[i]])
+
+       # print("annoy nearest neighbors found in 3", time.time() - start_time, " seconds")
 
         words = ' '.join([ word for word in n_nearest_neighbors ])
 
     else:
         #start_time = time.time()
         #print("using fasttext library for nearest neighbor search")
+
         # find the most similar words using fasttext library
         topn = fasttext_models[lang].get_nearest_neighbors(word, k=n)
 
-       # print("fasttext nearest neighbors found in ", time.time() - start_time, " seconds")
+        #print("fasttext nearest neighbors found in ", time.time() - start_time, " seconds")
 
         words = ' '.join([ word for (rank, word) in topn ])
 
@@ -216,7 +222,7 @@ def suppress_stdout_stderr():
         with redirect_stderr(fnull) as err, redirect_stdout(fnull) as out:
             yield (err, out)
 
-#print("tsquery  single quotes baby boy = ", to_tsquery('en', 'baby boy', augment_with=lambda lang,word,config: augments_fasttext(lang,word,config)))
+#print("tsquery  single quotes baby boy = ", to_tsquery('en', 'baby boy', augment_with=lambda lang,word,config: augments_fasttext(lang,word,config,5,False)))
 #print("tsquery single quotes baby boy annoy = ", to_tsquery('en', 'baby boy', augment_with=augments_fasttext))
 #print("tsquery double quotes baby boy = ", to_tsquery('en', '"baby boy"', augment_with=augments_fasttext))
 #print("tsquery baby boy (school | home) !weapon = ", to_tsquery('en', '"baby boy" (school | home) !weapon', augment_with=augments_fasttext))
