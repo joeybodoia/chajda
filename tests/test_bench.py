@@ -5,6 +5,9 @@ import pytest
 import sys
 sys.path.append('.')
 from chajda.tsvector import load_all_langs, lemmatize
+from chajda.tsquery.augments import create_annoy_index_if_needed, load_fasttext_model, augments_fasttext
+import fasttext
+import fasttext.util
 
 # load the input lang/text pairs
 inputs = []
@@ -21,6 +24,9 @@ if test_langs is not None:
 langs = [input['lang'] for input in inputs]
 load_all_langs(langs)
 
+# pre-loading for augments_fasttext
+create_annoy_index_if_needed('en', 'king', 5)
+load_fasttext_model('en', 'king', 5)
 ################################################################################
 # test cases
 ################################################################################
@@ -29,3 +35,11 @@ load_all_langs(langs)
 @pytest.mark.parametrize('test', inputs, ids=[input['lang'] for input in inputs])
 def test__lemmatize(test, benchmark):
     benchmark(lemmatize, test['lang'], test['text'])
+
+def test__augments_fasttext_annoy(benchmark):
+    result = benchmark(augments_fasttext, 'en', 'king')
+    assert result == ['kingthe', 'kingly']
+
+def test__augments_fasttext_fasttext(benchmark):
+    result = benchmark(augments_fasttext, 'en', 'king', annoy=False)
+    assert result == ['queen', 'kingthe']

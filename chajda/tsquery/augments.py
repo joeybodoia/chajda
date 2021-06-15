@@ -167,19 +167,19 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
  
         # find the most similar words using annoy library
 
-        #start_time = time.time()
+        start_time = time.time()
         n_nearest_neighbor_indices = annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)
 
-        #print("annoy nearest neighbors found in 1", time.time() - start_time, " seconds")
+        print("annoy nearest neighbors found in 1", time.time() - start_time, " seconds")
         
         # find the most similar words using annoy library
 
-        #start_time = time.time()
+        start_time = time.time()
         n_nearest_neighbors = []
         for i in range(n):
             n_nearest_neighbors.append(fasttext_models[lang].words[n_nearest_neighbor_indices[i]])
 
-        #print("annoy nearest neighbors found in 2", time.time() - start_time, " seconds")
+        print("annoy nearest neighbors found in 2", time.time() - start_time, " seconds")
 
        # start_time = time.time()
        # n_nearest_neighbors = []
@@ -191,13 +191,13 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
         words = ' '.join([ word for word in n_nearest_neighbors ])
 
     else:
-        #start_time = time.time()
+        start_time = time.time()
         #print("using fasttext library for nearest neighbor search")
 
         # find the most similar words using fasttext library
         topn = fasttext_models[lang].get_nearest_neighbors(word, k=n)
 
-        #print("fasttext nearest neighbors found in ", time.time() - start_time, " seconds")
+        print("fasttext nearest neighbors found in ", time.time() - start_time, " seconds")
 
         words = ' '.join([ word for (rank, word) in topn ])
 
