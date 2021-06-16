@@ -169,7 +169,7 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
 
         start_time = time.time()
         n_nearest_neighbor_indices = annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)
-
+  
         print("annoy nearest neighbors found in 1", time.time() - start_time, " seconds")
         
         # find the most similar words using annoy library
