@@ -168,10 +168,22 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
         # find the most similar words using annoy library
 
         start_time = time.time()
-        n_nearest_neighbor_indices = annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)
-  
-        print("annoy nearest neighbors found in 1", time.time() - start_time, " seconds")
-        
+        n_nearest_neighbor_indices = annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)       
+        print("annoy nearest neighbors query 1: ", time.time() - start_time, " seconds")
+
+
+        start_time = time.time()
+        n_nearest_neighbor_indices = annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)       
+        print("annoy nearest neighbors query 2: ", time.time() - start_time, " seconds")
+
+
+        start_time = time.time()
+        n_nearest_neighbor_indices = annoy_indices[lang].get_nns_by_vector(fasttext_models[lang][word], n)       
+        print("annoy nearest neighbors query 3: ", time.time() - start_time, " seconds")
+
+       # result_list = [fasttext_models[lang].words[i] for i in n_nearest_neighbor_indices ]
+
+       
         # find the most similar words using annoy library
 
         start_time = time.time()
@@ -179,14 +191,14 @@ def augments_fasttext(lang, word, config=Config(), n=5, annoy=True):
         for i in range(n):
             n_nearest_neighbors.append(fasttext_models[lang].words[n_nearest_neighbor_indices[i]])
 
-        print("annoy nearest neighbors found in 2", time.time() - start_time, " seconds")
+        print("acessing fasttext_model index values 1: ", time.time() - start_time, " seconds")
 
-       # start_time = time.time()
-       # n_nearest_neighbors = []
-       # for i in range(n):
-       #     n_nearest_neighbors.append(fasttext_models[lang].words[n_nearest_neighbor_indices[i]])
+        start_time = time.time()
+        n_nearest_neighbors = []
+        for i in range(n):
+            n_nearest_neighbors.append(fasttext_models[lang].words[n_nearest_neighbor_indices[i]])
 
-       # print("annoy nearest neighbors found in 3", time.time() - start_time, " seconds")
+        print("accessing fasttext model index values 2: ", time.time() - start_time, " seconds")
 
         words = ' '.join([ word for word in n_nearest_neighbors ])
 
